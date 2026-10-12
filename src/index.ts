@@ -4,10 +4,17 @@ const app = express();
 
 app.use(express.json())
 
-app.get("/", (req, res) => {
-  res.json({
-    message: "yes the server is working"
-  })
+
+app.get("/", (_, res) => {
+  res.send("Hello this is a plain text")
+})
+
+app.get("/json", (_, res) => {
+  res.json
+    ({
+      message: "hello this is a json response"
+    })
+
 })
 
 app.listen(3000, () => {
