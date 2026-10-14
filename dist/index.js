@@ -1,12 +1,16 @@
 import express from "express";
 const app = express();
 app.use(express.json());
-app.get("/", (req, res) => {
-    res.send("Hello this is a plain text");
+app.get("/", (_, res) => {
+    res.status(200).send("Hello this is a plain text");
 });
 app.get("/json", (req, res) => {
-    res.json({
-        message: "hello this is a json response"
+    res.status(200).json({
+        message: "hello this is a json response",
+        method: req.method,
+        another: req.path,
+        ano: req.url,
+        headers: req.headers
     });
 });
 app.listen(3000, () => {

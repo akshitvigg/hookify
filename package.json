@@ -5,15 +5,19 @@
   "main": "index.js",
   "scripts": {
     "build": "npx tsc --build",
-    "start": "node dist/index.js",
+    "start": "node dist/relay.js",
     "dev": "npm run build && npm run start"
   },
   "keywords": [],
   "type": "module",
   "dependencies": {
     "@types/express": "^5.0.6",
+    "@types/ws": "^8.18.2",
     "express": "^5.3.0",
     "typescript": "^7.0.2",
     "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
   }
 }
