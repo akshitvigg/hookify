@@ -1,17 +1,10 @@
-import { WebSocketServer, WebSocket } from "ws";
-const wss = new WebSocketServer({ port: 8080 });
-wss.on('connection', (ws) => {
-    console.log("Server Started");
-    ws.on('message', (data) => {
-        const message = data.toString();
-        console.log(`Received: ${message}`);
-        console.log(`Hello this is Server`);
-    });
-    ws.on('close', () => {
-        console.log("Client disconnected");
-    });
-    ws.on('error', (error) => {
-        console.log(`WebSocket error ${error}`);
-    });
+import express from "express";
+const app = express();
+app.use(express.json());
+app.get("/", (_, res) => {
+    res.send("Hello from my local app on port 3000!");
+});
+app.listen(3000, () => {
+    console.log("local app started");
 });
 //# sourceMappingURL=server.js.map
