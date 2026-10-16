@@ -1,5 +1,5 @@
 import express from "express"
-import { createServer, request } from "http"
+import { createServer } from "http"
 import { WebSocketServer, WebSocket } from "ws";
 
 const app = express();
@@ -36,10 +36,17 @@ wss.on('connection', (ws: WebSocket) => {
 
   ws.on('message', (data: Buffer) => {
     try {
+      const responseData = JSON.parse(data.toString())
+      const { id, body } = responseData;
 
+      const vistorRes = pendingRequest.get(id);
 
-    } catch (error) {
-
+      if (vistorRes) {
+        vistorRes.send(body)
+        pendingRequest.delete(id)
+      }
+    } catch (err) {
+      console.log("Failed to process agent message:", err)
     }
   })
 })

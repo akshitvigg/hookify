@@ -6,13 +6,11 @@ ws.on('open', () => {
 ws.on('message', async (data) => {
     try {
         const requestData = JSON.parse(data.toString());
-        const method = requestData.method;
-        const url = requestData.url;
-        console.log(`received ${method} ${url}`);
+        const { id, method, url } = requestData;
+        console.log(`received ${method} ${url} from id: ${id}`);
         const response = await fetch("http://localhost:3000");
         const text = await response.text();
-        ws.send(text);
-        console.log(`local app sent ${text}`);
+        ws.send(JSON.stringify({ id: id, body: text }));
     }
     catch (error) {
         console.log(`Failed to parse incoming WebSocket message ${error}`);
