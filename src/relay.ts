@@ -1,5 +1,5 @@
 import express from "express"
-import { createServer } from "http"
+import { createServer, request } from "http"
 import { WebSocketServer, WebSocket } from "ws";
 
 const app = express();
@@ -8,17 +8,21 @@ const server = createServer(app)
 const wss = new WebSocketServer({ server })
 
 let activeAgent: WebSocket | null = null;
-let localRes: String | null = null;
+const pendingRequest = new Map<string, any>();
 
 app.all("*splat", (req, res) => {
   console.log(`Incoming HTTP request: ${req.method} ${req.url}`)
 
 
-  res.send(localRes);
+  if (!activeAgent) {
+    return res.status(502).send("Tunnel offline: No agent connected");
+  }
 
-  if (!activeAgent) return
+  const requestId = crypto.randomUUID();
+  pendingRequest.set(requestId, res);
 
   const payload = {
+    id: requestId,
     method: req.method,
     url: req.url
   }
@@ -31,8 +35,12 @@ wss.on('connection', (ws: WebSocket) => {
   activeAgent = ws;
 
   ws.on('message', (data: Buffer) => {
-    localRes = data.toString();
-    console.log("got the message", data.toString())
+    try {
+
+
+    } catch (error) {
+
+    }
   })
 })
 
