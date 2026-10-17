@@ -30,13 +30,26 @@ app.all("*splat", (req, res) => {
 
   pendingRequest.set(requestId, { res, timer });
 
-  const payload = {
-    id: requestId,
-    method: req.method,
-    url: req.url
-  }
+  let bodyChunks: Buffer[] = [];
 
-  activeAgent.send(JSON.stringify(payload))
+  req.on('data', (chunks) => {
+    bodyChunks.push(chunks);
+  })
+
+  req.on('end', () => {
+    const rawBodyBuffer = Buffer.concat(bodyChunks);
+    const base64Body = rawBodyBuffer.toString('base64')
+
+    const payload = {
+      id: requestId,
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      base64Body: base64Body
+    }
+
+    activeAgent!.send(JSON.stringify(payload))
+  })
 })
 
 wss.on('connection', (ws: WebSocket) => {

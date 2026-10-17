@@ -23,7 +23,8 @@ app.all("*splat", (req, res) => {
     const payload = {
         id: requestId,
         method: req.method,
-        url: req.url
+        url: req.url,
+        headers: req.headers
     };
     activeAgent.send(JSON.stringify(payload));
 });

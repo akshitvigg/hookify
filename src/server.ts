@@ -14,6 +14,10 @@ app.get("/time", (_, res) => {
   }, 40000)
 })
 
+app.post("/echo", (req, res) => {
+
+})
+
 app.listen(3000, () => {
   console.log("local app started")
 })
