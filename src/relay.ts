@@ -37,12 +37,16 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (data: Buffer) => {
     try {
       const responseData = JSON.parse(data.toString())
-      const { id, body } = responseData;
+      const { id, body, status } = responseData;
 
       const vistorRes = pendingRequest.get(id);
 
       if (vistorRes) {
-        vistorRes.send(body)
+        if (status === 502) {
+          vistorRes.status(502).send(body)
+        } else {
+          vistorRes.send(body)
+        }
         pendingRequest.delete(id)
       }
     } catch (err) {
