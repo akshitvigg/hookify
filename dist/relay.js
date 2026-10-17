@@ -12,7 +12,14 @@ app.all("*splat", (req, res) => {
         return res.status(502).send("Tunnel offline: No agent connected");
     }
     const requestId = crypto.randomUUID();
-    pendingRequest.set(requestId, res);
+    const timer = setTimeout(() => {
+        let visitorRes = pendingRequest.get(requestId);
+        if (visitorRes) {
+            visitorRes.res.status(504).send("Gateway Timeout");
+        }
+        pendingRequest.delete(requestId);
+    }, 30000);
+    pendingRequest.set(requestId, { res, timer });
     const payload = {
         id: requestId,
         method: req.method,
@@ -29,11 +36,12 @@ wss.on('connection', (ws) => {
             const { id, body, status } = responseData;
             const vistorRes = pendingRequest.get(id);
             if (vistorRes) {
+                clearTimeout(vistorRes.timer);
                 if (status === 502) {
-                    vistorRes.status(502).send(body);
+                    vistorRes.res.status(502).send(body);
                 }
                 else {
-                    vistorRes.send(body);
+                    vistorRes.res.send(body);
                 }
                 pendingRequest.delete(id);
             }

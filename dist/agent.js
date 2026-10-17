@@ -10,7 +10,7 @@ ws.on('message', async (data) => {
         const { id, method, url } = requestData;
         userId = id;
         console.log(`received ${method} ${url} from id: ${id}`);
-        const response = await fetch("http://localhost:3000");
+        const response = await fetch("http://localhost:3000/time");
         const text = await response.text();
         ws.send(JSON.stringify({ id: id, body: text, status: 200 }));
     }
