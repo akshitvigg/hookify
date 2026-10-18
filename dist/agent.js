@@ -7,10 +7,15 @@ ws.on('message', async (data) => {
     let userId;
     try {
         const requestData = JSON.parse(data.toString());
-        const { id, method, url, headers } = requestData;
+        const { id, method, url, headers, base64Body } = requestData;
         userId = id;
         console.log(`received ${method} ${url}  from id: ${id} headers=`, headers);
-        const response = await fetch("http://localhost:3000" + url);
+        const decodedBody = Buffer.from(base64Body, 'base64');
+        const response = await fetch("http://localhost:3000" + url, {
+            method: method,
+            headers: headers,
+            body: decodedBody
+        });
         const text = await response.text();
         ws.send(JSON.stringify({ id: id, body: text, status: 200 }));
     }

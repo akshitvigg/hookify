@@ -20,13 +20,22 @@ app.all("*splat", (req, res) => {
         pendingRequest.delete(requestId);
     }, 30000);
     pendingRequest.set(requestId, { res, timer });
-    const payload = {
-        id: requestId,
-        method: req.method,
-        url: req.url,
-        headers: req.headers
-    };
-    activeAgent.send(JSON.stringify(payload));
+    let bodyChunks = [];
+    req.on('data', (chunks) => {
+        bodyChunks.push(chunks);
+    });
+    req.on('end', () => {
+        const rawBodyBuffer = Buffer.concat(bodyChunks);
+        const base64Body = rawBodyBuffer.toString('base64');
+        const payload = {
+            id: requestId,
+            method: req.method,
+            url: req.url,
+            headers: req.headers,
+            base64Body: base64Body
+        };
+        activeAgent.send(JSON.stringify(payload));
+    });
 });
 wss.on('connection', (ws) => {
     console.log("Agent connected to the tunnel");

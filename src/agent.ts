@@ -15,15 +15,17 @@ ws.on('message', async (data: Buffer) => {
     const { id, method, url, headers, base64Body } = requestData;
     userId = id;
 
-    console.log(`received ${method} ${url}  from id: ${id} headers=`, headers);
-
-    const decodedBody = Buffer.from(base64Body, 'base64')
-
-    const response = await fetch("http://localhost:3000" + url, {
+    const fetchOptions: any = {
       method: method,
-      headers: headers,
-      body: decodedBody
-    })
+      headers: headers
+    }
+
+    if (base64Body && base64Body.length > 0 && method !== "GET" && method !== "HEAD") {
+      fetchOptions.body = Buffer.from(base64Body, 'base64');
+    }
+
+
+    const response = await fetch("http://localhost:3000" + url, fetchOptions)
     const text = await response.text();
 
     ws.send(JSON.stringify({ id: id, body: text, status: 200 }))
