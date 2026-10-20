@@ -1,4 +1,5 @@
 import express from "express"
+import { stat } from "fs";
 import { createServer } from "http"
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -73,17 +74,24 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (data: Buffer) => {
     try {
       const responseData = JSON.parse(data.toString())
-      const { id, body, status } = responseData;
+      const { id, body, status, headers } = responseData;
+      const cleanResHeaders = { ...headers }
+      delete cleanResHeaders['content-encoding']
+      delete cleanResHeaders['content-length']
+      delete cleanResHeaders['transfer-encoding']
 
       const vistorRes = pendingRequest.get(id);
 
       if (vistorRes) {
+        vistorRes.res.status(status);
+        vistorRes.res.set(cleanResHeaders)
+
         clearTimeout(vistorRes.timer)
 
         if (status === 502) {
           vistorRes.res.status(502).send(body)
         } else {
-          vistorRes.res.send(body)
+          vistorRes.res.send(Buffer.from(body, 'base64'))
         }
         pendingRequest.delete(id)
       }

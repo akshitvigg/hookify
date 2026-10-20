@@ -26,9 +26,11 @@ ws.on('message', async (data: Buffer) => {
 
 
     const response = await fetch("http://localhost:3000" + url, fetchOptions)
-    const text = await response.text();
+    const arrayBuffer = await response.arrayBuffer()
+    const base64String = Buffer.from(arrayBuffer).toString('base64')
+    const plainHeaders = Object.fromEntries(response.headers.entries())
 
-    ws.send(JSON.stringify({ id: id, body: text, status: 200 }))
+    ws.send(JSON.stringify({ id: id, body: base64String, status: response.status, headers: plainHeaders }))
   } catch (error) {
     console.log(`Failed to parse incoming WebSocket message ${error}`)
     ws.send(JSON.stringify({ id: userId, body: "Server error", status: 502 }))
