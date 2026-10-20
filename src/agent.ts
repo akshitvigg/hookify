@@ -1,6 +1,6 @@
 import WebSocket from "ws"
 
-const ws = new WebSocket("ws://localhost:4000")
+const ws = new WebSocket("ws://localhost:4000/_tunnel")
 
 ws.on('open', () => {
   console.log("connection established");

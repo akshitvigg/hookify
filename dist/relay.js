@@ -6,7 +6,7 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 let activeAgent = null;
 const pendingRequest = new Map();
-app.all("*splat", (req, res) => {
+app.all("/{*splat}", (req, res) => {
     console.log(`Incoming HTTP request: ${req.method} ${req.url}`);
     if (!activeAgent) {
         return res.status(502).send("Tunnel offline: No agent connected");
@@ -34,6 +34,9 @@ app.all("*splat", (req, res) => {
             headers: req.headers,
             base64Body: base64Body
         };
+        if (activeAgent?.readyState !== WebSocket.OPEN) {
+            return;
+        }
         activeAgent.send(JSON.stringify(payload));
     });
 });
@@ -58,6 +61,11 @@ wss.on('connection', (ws) => {
         }
         catch (err) {
             console.log("Failed to process agent message:", err);
+        }
+    });
+    ws.on('close', () => {
+        if (activeAgent === ws) {
+            activeAgent = null;
         }
     });
 });

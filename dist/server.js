@@ -10,6 +10,11 @@ app.get("/time", (_, res) => {
     }, 40000);
 });
 app.post("/echo", (req, res) => {
+    const { message } = req.body;
+    res.status(200).json({
+        message: "im 3000 we got your body",
+        body: message
+    });
 });
 app.listen(3000, () => {
     console.log("local app started");
