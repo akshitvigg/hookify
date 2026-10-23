@@ -74,7 +74,7 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('message', (data: Buffer) => {
     try {
       const responseData = JSON.parse(data.toString())
-      const { id, body, status, headers } = responseData;
+      const { id, body, status, headers, type, message } = responseData;
       const cleanResHeaders = { ...headers }
       delete cleanResHeaders['content-encoding']
       delete cleanResHeaders['content-length']
@@ -83,15 +83,12 @@ wss.on('connection', (ws: WebSocket) => {
       const vistorRes = pendingRequest.get(id);
 
       if (vistorRes) {
-        vistorRes.res.status(status);
-        vistorRes.res.set(cleanResHeaders)
-
         clearTimeout(vistorRes.timer)
 
-        if (status === 502) {
-          vistorRes.res.status(502).send(body)
+        if (type === "error") {
+          vistorRes.res.status(502).send("Local app error: " + message)
         } else {
-          vistorRes.res.send(Buffer.from(body, 'base64'))
+          vistorRes.res.status(status).set(cleanResHeaders).send(Buffer.from(body, 'base64'))
         }
         pendingRequest.delete(id)
       }
