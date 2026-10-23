@@ -70,6 +70,11 @@ app.all("/{*splat}", (req, res) => {
 
 wss.on('connection', (ws: WebSocket) => {
   console.log("Agent connected to the tunnel")
+  if (activeAgent) {
+    console.log("Replacing existing active agent...")
+    activeAgent.close();
+  }
+
   activeAgent = ws;
 
   ws.on('message', (data: Buffer) => {
@@ -101,9 +106,10 @@ wss.on('connection', (ws: WebSocket) => {
   })
 
   ws.on('close', () => {
-    if (activeAgent === ws) {
-      activeAgent = null;
-    }
+    if (activeAgent !== ws) return;
+
+    activeAgent = null;
+
     for (const [id, reqObj] of pendingRequest) {
       clearTimeout(reqObj.timer);
       reqObj.res.status(502).send("Agent disconnected mid-request");
