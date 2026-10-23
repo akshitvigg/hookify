@@ -1,5 +1,4 @@
 import express from "express"
-import { stat } from "fs";
 import { createServer } from "http"
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -61,7 +60,9 @@ app.all("/{*splat}", (req, res) => {
     }
 
     if (activeAgent?.readyState !== WebSocket.OPEN) {
-      return;
+      clearTimeout(timer);
+      pendingRequest.delete(requestId);
+      return res.status(502).send("Tunnel offline")
     }
     activeAgent!.send(JSON.stringify(payload))
   })
@@ -79,6 +80,8 @@ wss.on('connection', (ws: WebSocket) => {
       delete cleanResHeaders['content-encoding']
       delete cleanResHeaders['content-length']
       delete cleanResHeaders['transfer-encoding']
+      delete cleanResHeaders['connection']
+      delete cleanResHeaders['keep-alive']
 
       const vistorRes = pendingRequest.get(id);
 
@@ -100,6 +103,11 @@ wss.on('connection', (ws: WebSocket) => {
   ws.on('close', () => {
     if (activeAgent === ws) {
       activeAgent = null;
+    }
+    for (const [id, reqObj] of pendingRequest) {
+      clearTimeout(reqObj.timer);
+      reqObj.res.status(502).send("Agent disconnected mid-request");
+      pendingRequest.delete(id);
     }
   })
 })
