@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 const app = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, path: "/_tunnel" });
 let activeAgent = null;
 const pendingRequest = new Map();
 app.all("/{*splat}", (req, res) => {
@@ -27,15 +27,27 @@ app.all("/{*splat}", (req, res) => {
     req.on('end', () => {
         const rawBodyBuffer = Buffer.concat(bodyChunks);
         const base64Body = rawBodyBuffer.toString('base64');
+        const cleanHeaders = { ...req.headers };
+        delete cleanHeaders['host'];
+        delete cleanHeaders['connection'];
+        delete cleanHeaders['upgrade'];
+        delete cleanHeaders['keep-alive'];
+        delete cleanHeaders['proxy-authenticate'];
+        delete cleanHeaders['proxy-authorization'];
+        delete cleanHeaders['te'];
+        delete cleanHeaders['trailers'];
+        delete cleanHeaders['transfer-encoding'];
         const payload = {
             id: requestId,
             method: req.method,
             url: req.url,
-            headers: req.headers,
+            headers: cleanHeaders,
             base64Body: base64Body
         };
         if (activeAgent?.readyState !== WebSocket.OPEN) {
-            return;
+            clearTimeout(timer);
+            pendingRequest.delete(requestId);
+            return res.status(502).send("Tunnel offline");
         }
         activeAgent.send(JSON.stringify(payload));
     });
@@ -46,15 +58,21 @@ wss.on('connection', (ws) => {
     ws.on('message', (data) => {
         try {
             const responseData = JSON.parse(data.toString());
-            const { id, body, status } = responseData;
+            const { id, body, status, headers, type, message } = responseData;
+            const cleanResHeaders = { ...headers };
+            delete cleanResHeaders['content-encoding'];
+            delete cleanResHeaders['content-length'];
+            delete cleanResHeaders['transfer-encoding'];
+            delete cleanResHeaders['connection'];
+            delete cleanResHeaders['keep-alive'];
             const vistorRes = pendingRequest.get(id);
             if (vistorRes) {
                 clearTimeout(vistorRes.timer);
-                if (status === 502) {
-                    vistorRes.res.status(502).send(body);
+                if (type === "error") {
+                    vistorRes.res.status(502).send("Local app error: " + message);
                 }
                 else {
-                    vistorRes.res.send(body);
+                    vistorRes.res.status(status).set(cleanResHeaders).send(Buffer.from(body, 'base64'));
                 }
                 pendingRequest.delete(id);
             }
@@ -66,6 +84,11 @@ wss.on('connection', (ws) => {
     ws.on('close', () => {
         if (activeAgent === ws) {
             activeAgent = null;
+        }
+        for (const [id, reqObj] of pendingRequest) {
+            clearTimeout(reqObj.timer);
+            reqObj.res.status(502).send("Agent disconnected mid-request");
+            pendingRequest.delete(id);
         }
     });
 });
