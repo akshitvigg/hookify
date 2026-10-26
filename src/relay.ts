@@ -77,7 +77,7 @@ wss.on('connection', (ws: WebSocket) => {
 
   activeAgent = ws;
 
-  ws.on('messae', (data: Buffer) => {
+  ws.on('message', (data: Buffer) => {
     try {
       const responseData = JSON.parse(data.toString())
       const { id, body, status, headers, type, message } = responseData;
