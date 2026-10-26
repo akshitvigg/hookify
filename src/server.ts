@@ -26,11 +26,11 @@ app.post("/echo", (req, res) => {
 
 })
 
-app.get("/not-found", (req, res) => {
+app.get("/not-found", (_, res) => {
   res.status(404).send("This page definetly does not exist on 3000")
 })
 
-app.get("/old-route", (req, res) => {
+app.get("/old-route", (_, res) => {
   res.redirect("/")
 })
 
