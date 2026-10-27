@@ -1,4 +1,20 @@
+import { Command } from "commander";
+const program = new Command();
 import WebSocket from "ws";
+program
+    .name('tunnel app')
+    .description('CLI to tunnel your app')
+    .version('1.0.0');
+program
+    .option('-p , --port', 'port of your local app')
+    .option('s, --server [url]', 'server url', 'ws://localhost:4000');
+program.parse(process.argv);
+const options = program.opts();
+if (!Number.isFinite(options.port) || options.port < 1 || options.port > 65535) {
+    console.error("error: port num can only be a number between 1 and 65535");
+    process.exit(1);
+}
+console.log(options.port, " ", options.server);
 const ws = new WebSocket("ws://localhost:4000/_tunnel");
 ws.on('open', () => {
     console.log("connection established");

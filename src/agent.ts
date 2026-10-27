@@ -1,6 +1,30 @@
+import { Command } from "commander";
+const program = new Command();
 import WebSocket from "ws"
 
-const ws = new WebSocket("ws://localhost:4000/_tunnel")
+
+program
+  .name('tunnel app')
+  .description('CLI to tunnel your app')
+  .version('1.0.0')
+
+program
+  .option('-p, --port <number>', 'port of your local app')
+  .option('-s, --server [url]', 'server url', 'ws://localhost:4000')
+
+program.parse(process.argv);
+
+const options = program.opts();
+const port = Number(options.port)
+
+if (!options.port || !Number.isFinite(port) || port < 1 || port > 65535) {
+  console.error("error: port num can only be a number between 1 and 65535")
+  process.exit(1);
+}
+
+console.log(options.port, " ", options.server);
+
+const ws = new WebSocket(`${options.server}/_tunnel`)
 
 ws.on('open', () => {
   console.log("connection established");
@@ -26,7 +50,7 @@ ws.on('message', async (data: Buffer) => {
     }
 
 
-    const response = await fetch("http://localhost:3000" + url, fetchOptions)
+    const response = await fetch("http://localhost:" + port + url, fetchOptions)
     const arrayBuffer = await response.arrayBuffer()
     const base64String = Buffer.from(arrayBuffer).toString('base64')
     const plainHeaders = Object.fromEntries(response.headers.entries())
