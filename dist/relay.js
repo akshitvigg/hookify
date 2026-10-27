@@ -1,6 +1,7 @@
 import express from "express";
 import { createServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
+import "dotenv/config";
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server, path: "/_tunnel" });
@@ -54,6 +55,10 @@ app.all("/{*splat}", (req, res) => {
 });
 wss.on('connection', (ws) => {
     console.log("Agent connected to the tunnel");
+    if (activeAgent) {
+        console.log("Replacing existing active agent...");
+        activeAgent.close();
+    }
     activeAgent = ws;
     ws.on('message', (data) => {
         try {
@@ -82,9 +87,9 @@ wss.on('connection', (ws) => {
         }
     });
     ws.on('close', () => {
-        if (activeAgent === ws) {
-            activeAgent = null;
-        }
+        if (activeAgent !== ws)
+            return;
+        activeAgent = null;
         for (const [id, reqObj] of pendingRequest) {
             clearTimeout(reqObj.timer);
             reqObj.res.status(502).send("Agent disconnected mid-request");
@@ -92,7 +97,8 @@ wss.on('connection', (ws) => {
         }
     });
 });
-server.listen(4000, () => {
-    console.log("Relay server running on 4000");
+const PORT = Number(process.env.PORT) || 4000;
+server.listen(PORT, () => {
+    console.log("Relay server running on ", process.env.PORT);
 });
 //# sourceMappingURL=relay.js.map

@@ -1,6 +1,7 @@
 import express from "express"
 import { createServer } from "http"
 import { WebSocketServer, WebSocket } from "ws";
+import "dotenv/config"
 
 const app = express();
 const server = createServer(app)
@@ -119,6 +120,7 @@ wss.on('connection', (ws: WebSocket) => {
 })
 
 
-server.listen(4000, () => {
-  console.log("Relay server running on 4000")
+const PORT = Number(process.env.PORT) || 4000;
+server.listen(PORT, () => {
+  console.log("Relay server running on ", process.env.PORT)
 })

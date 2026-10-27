@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public/")));
+app.use(express.static(path.join(import.meta.dirname, "../public/")));
 app.get("/", (_, res) => {
     res.send("Hello from my local app on port 3000!");
 });
@@ -18,10 +18,10 @@ app.post("/echo", (req, res) => {
         body: message
     });
 });
-app.get("/not-found", (req, res) => {
+app.get("/not-found", (_, res) => {
     res.status(404).send("This page definetly does not exist on 3000");
 });
-app.get("/old-route", (req, res) => {
+app.get("/old-route", (_, res) => {
     res.redirect("/");
 });
 app.listen(3000, () => {
