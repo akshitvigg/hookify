@@ -23,17 +23,19 @@ if (!options.port || !Number.isFinite(port) || port < 1 || port > 65535) {
 
 console.log(options.port, " ", options.server);
 let backOffDelay = 1000;
+let activeWs: WebSocket | null = null;
+
+let shuttingDown = false;
+
+process.on('SIGINT', () => {
+  shuttingDown = true;
+  if (activeWs) activeWs.close();
+})
 
 function connect() {
 
-  let shuttingDown = false;
-
-  process.on('SIGINT', () => {
-    shuttingDown = true;
-    process.exit(1);
-  })
-
   const ws = new WebSocket(`${options.server}/_tunnel`)
+  activeWs = ws;
 
   ws.on('open', () => {
     console.log("connection established");
@@ -81,15 +83,15 @@ function connect() {
 
   ws.on('close', () => {
 
-    // if (shuttingDown) {
-    //   process.exit(1);
-    // } else {
-    console.log(`Connection lost. Reconnecting in ${backOffDelay / 1000} seconds...`)
+    if (shuttingDown) {
+      process.exit(0);
+    } else {
+      console.log(`Connection lost. Reconnecting in ${backOffDelay / 1000} seconds...`)
 
-    setTimeout(connect, backOffDelay);
+      setTimeout(connect, backOffDelay);
 
-    backOffDelay = Math.min(backOffDelay * 2, 30000);
-    // }
+      backOffDelay = Math.min(backOffDelay * 2, 30000);
+    }
   })
 
 }
