@@ -2,7 +2,6 @@ import { Command } from "commander";
 const program = new Command();
 import WebSocket from "ws"
 
-
 program
   .name('tunnel app')
   .description('CLI to tunnel your app')
@@ -26,6 +25,13 @@ console.log(options.port, " ", options.server);
 let backOffDelay = 1000;
 
 function connect() {
+
+  let shuttingDown = false;
+
+  process.on('SIGINT', () => {
+    shuttingDown = true;
+    process.exit(1);
+  })
 
   const ws = new WebSocket(`${options.server}/_tunnel`)
 
@@ -74,13 +80,18 @@ function connect() {
   })
 
   ws.on('close', () => {
+
+    // if (shuttingDown) {
+    //   process.exit(1);
+    // } else {
     console.log(`Connection lost. Reconnecting in ${backOffDelay / 1000} seconds...`)
 
     setTimeout(connect, backOffDelay);
 
     backOffDelay = Math.min(backOffDelay * 2, 30000);
+    // }
   })
+
 }
 
 connect();
-
