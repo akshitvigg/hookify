@@ -25,6 +25,8 @@ console.log(options.port, " ", options.server);
 
 let backOffDelay = 1000;
 let activeWs: WebSocket | null = null;
+let pingInterval: NodeJS.Timeout | null = null;
+let pingTimeout: NodeJS.Timeout | null = null;
 
 let shuttingDown = false;
 
@@ -42,13 +44,22 @@ function connect() {
     console.log("connection established");
     backOffDelay = 1000;
 
-    let pingInterval = setInterval(() => {
+    pingInterval = setInterval(() => {
       ws.send(JSON.stringify({ type: "ping" }));
+
+      if (pingTimeout) {
+        clearTimeout(pingTimeout)
+      }
+
+      pingTimeout = setTimeout(() => {
+        ws.close();
+      }, 10000)
     }, 3000)
 
   })
 
   ws.on('message', async (data: Buffer) => {
+    clearTimeout(pingTimeout!)
     let userId;
 
     try {
@@ -92,6 +103,9 @@ function connect() {
   })
 
   ws.on('close', () => {
+    clearInterval(pingInterval!)
+
+    if (pingTimeout) clearTimeout(pingTimeout)
 
     if (shuttingDown) {
       process.exit(0);

@@ -18,6 +18,8 @@ if (!options.port || !Number.isFinite(port) || port < 1 || port > 65535) {
 console.log(options.port, " ", options.server);
 let backOffDelay = 1000;
 let activeWs = null;
+let pingInterval = null;
+let pingTimeout = null;
 let shuttingDown = false;
 process.on('SIGINT', () => {
     shuttingDown = true;
@@ -30,11 +32,18 @@ function connect() {
     ws.on('open', () => {
         console.log("connection established");
         backOffDelay = 1000;
-        let pingInterval = setInterval(() => {
+        pingInterval = setInterval(() => {
             ws.send(JSON.stringify({ type: "ping" }));
+            if (pingTimeout) {
+                clearTimeout(pingTimeout);
+            }
+            pingTimeout = setTimeout(() => {
+                ws.close();
+            }, 10000);
         }, 3000);
     });
     ws.on('message', async (data) => {
+        clearTimeout(pingTimeout);
         let userId;
         try {
             const requestData = JSON.parse(data.toString());
@@ -71,6 +80,9 @@ function connect() {
         console.error("WebSocket error: ", err.message);
     });
     ws.on('close', () => {
+        clearInterval(pingInterval);
+        if (pingTimeout)
+            clearTimeout(pingTimeout);
         if (shuttingDown) {
             process.exit(0);
         }
