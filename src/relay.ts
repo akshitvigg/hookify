@@ -89,6 +89,11 @@ wss.on('connection', (ws: WebSocket) => {
       delete cleanResHeaders['connection']
       delete cleanResHeaders['keep-alive']
 
+      if (type === "ping") {
+        console.log("received ping")
+        ws.send(JSON.stringify({ type: "pong" }))
+      }
+
       const vistorRes = pendingRequest.get(id);
 
       if (vistorRes) {

@@ -70,6 +70,10 @@ wss.on('connection', (ws) => {
             delete cleanResHeaders['transfer-encoding'];
             delete cleanResHeaders['connection'];
             delete cleanResHeaders['keep-alive'];
+            if (type === "ping") {
+                console.log("received ping");
+                ws.send(JSON.stringify({ type: "pong" }));
+            }
             const vistorRes = pendingRequest.get(id);
             if (vistorRes) {
                 clearTimeout(vistorRes.timer);

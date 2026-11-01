@@ -22,6 +22,7 @@ if (!options.port || !Number.isFinite(port) || port < 1 || port > 65535) {
 }
 
 console.log(options.port, " ", options.server);
+
 let backOffDelay = 1000;
 let activeWs: WebSocket | null = null;
 
@@ -40,16 +41,25 @@ function connect() {
   ws.on('open', () => {
     console.log("connection established");
     backOffDelay = 1000;
-  })
 
+    let pingInterval = setInterval(() => {
+      ws.send(JSON.stringify({ type: "ping" }));
+    }, 3000)
+
+  })
 
   ws.on('message', async (data: Buffer) => {
     let userId;
 
     try {
       const requestData = JSON.parse(data.toString())
-      const { id, method, url, headers, base64Body } = requestData;
+      const { id, method, url, headers, base64Body, type } = requestData;
       userId = id;
+
+      if (type === "pong") {
+        console.log("received pong from relay")
+        return;
+      }
 
       const fetchOptions: any = {
         method: method,

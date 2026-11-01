@@ -30,13 +30,20 @@ function connect() {
     ws.on('open', () => {
         console.log("connection established");
         backOffDelay = 1000;
+        let pingInterval = setInterval(() => {
+            ws.send(JSON.stringify({ type: "ping" }));
+        }, 3000);
     });
     ws.on('message', async (data) => {
         let userId;
         try {
             const requestData = JSON.parse(data.toString());
-            const { id, method, url, headers, base64Body } = requestData;
+            const { id, method, url, headers, base64Body, type } = requestData;
             userId = id;
+            if (type === "pong") {
+                console.log("received pong from relay");
+                return;
+            }
             const fetchOptions = {
                 method: method,
                 headers: headers,
