@@ -8,6 +8,9 @@
     "start": "node dist/relay.js",
     "dev": "npm run build && npm run start"
   },
+  "bin" : {
+    "mytunnel" : "./dist/agent.js"
+  },
   "keywords": [],
   "type": "module",
   "dependencies": {
