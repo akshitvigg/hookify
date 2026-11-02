@@ -4,13 +4,11 @@ const program = new Command();
 import WebSocket from "ws"
 
 program
-  .name('tunnel app')
+  .name('mytunnel')
   .description('CLI to tunnel your app')
   .version('1.0.0')
-
-program
   .option('-p, --port <number>', 'port of your local app')
-  .option('-s, --server [url]', 'server url', 'ws://localhost:4000')
+  .option('-s, --server <url>', 'server url', 'ws://localhost:4000')
 
 program.parse(process.argv);
 
@@ -22,41 +20,52 @@ if (!options.port || !Number.isFinite(port) || port < 1 || port > 65535) {
   process.exit(1);
 }
 
-console.log(options.port, " ", options.server);
+const serverUrl = options.server.replace(/\/$/, '');
 
 let backOffDelay = 1000;
 let activeWs: WebSocket | null = null;
-let pingInterval: NodeJS.Timeout | null = null;
-let pingTimeout: NodeJS.Timeout | null = null;
 
 let shuttingDown = false;
 
 process.on('SIGINT', () => {
   shuttingDown = true;
-  if (activeWs) activeWs.close();
+
+  if (activeWs && activeWs.readyState === WebSocket.OPEN) {
+    activeWs.terminate();
+  } else {
+    process.exit(0);
+  }
+
+  setTimeout(() => process.exit(0), 2000);
 })
 
 function connect() {
+  let pingInterval: NodeJS.Timeout | null = null;
+  let pingTimeout: NodeJS.Timeout | null = null;
 
-  const ws = new WebSocket(`${options.server}/_tunnel`)
+  if (shuttingDown) return;
+
+  const ws = new WebSocket(`${serverUrl}/_tunnel`)
   activeWs = ws;
 
   ws.on('open', () => {
-    console.log("connection established");
+    console.log(`Connected to tunnel server at ${serverUrl}`);
     backOffDelay = 1000;
 
     pingInterval = setInterval(() => {
-      ws.send(JSON.stringify({ type: "ping" }));
+
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "ping" }));
+      }
 
       if (pingTimeout) {
         clearTimeout(pingTimeout)
       }
 
       pingTimeout = setTimeout(() => {
-        ws.close();
+        ws.terminate();
       }, 10000)
     }, 30000)
-
   })
 
   ws.on('message', async (data: Buffer) => {
@@ -83,7 +92,7 @@ function connect() {
         fetchOptions.body = Buffer.from(base64Body, 'base64');
       }
 
-      const response = await fetch("http://localhost:" + port + url, fetchOptions)
+      const response = await fetch("http://127.0.0.1:" + port + url, fetchOptions)
       const arrayBuffer = await response.arrayBuffer()
       const base64String = Buffer.from(arrayBuffer).toString('base64')
       const plainHeaders = Object.fromEntries(response.headers.entries())
@@ -103,10 +112,15 @@ function connect() {
     console.error("WebSocket error: ", err.message);
   })
 
-  ws.on('close', () => {
+  ws.on('close', (code) => {
     clearInterval(pingInterval!)
 
     if (pingTimeout) clearTimeout(pingTimeout)
+
+    if (code === 4000) {
+      console.log("Another agent took over this tunnel. Exiting")
+      process.exit(1);
+    }
 
     if (shuttingDown) {
       process.exit(0);

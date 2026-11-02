@@ -41,7 +41,7 @@ function connect() {
             pingTimeout = setTimeout(() => {
                 ws.close();
             }, 10000);
-        }, 3000);
+        }, 30000);
     });
     ws.on('message', async (data) => {
         clearTimeout(pingTimeout);

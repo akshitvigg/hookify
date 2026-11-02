@@ -29,7 +29,7 @@ app.all("/{*splat}", (req, res) => {
     pendingRequest.delete(requestId);
   }, 30000)
 
-  pendingRequest.set(requestId, { res, timer });
+  pendingRequest.set(requestId, { res, timer, ws: activeAgent });
 
   let bodyChunks: Buffer[] = [];
 
@@ -73,7 +73,7 @@ wss.on('connection', (ws: WebSocket) => {
   console.log("Agent connected to the tunnel")
   if (activeAgent) {
     console.log("Replacing existing active agent...")
-    activeAgent.close();
+    activeAgent.close(4000, "replaced by new agent");
   }
 
   activeAgent = ws;
@@ -92,6 +92,7 @@ wss.on('connection', (ws: WebSocket) => {
       if (type === "ping") {
         console.log("received ping")
         ws.send(JSON.stringify({ type: "pong" }))
+        return;
       }
 
       const vistorRes = pendingRequest.get(id);
@@ -112,14 +113,17 @@ wss.on('connection', (ws: WebSocket) => {
   })
 
   ws.on('close', () => {
-    if (activeAgent !== ws) return;
 
-    activeAgent = null;
+    if (activeAgent === ws) {
+      activeAgent = null;
+    }
 
-    for (const [id, reqObj] of pendingRequest) {
-      clearTimeout(reqObj.timer);
-      reqObj.res.status(502).send("Agent disconnected mid-request");
-      pendingRequest.delete(id);
+    for (const [id, reqObj] of pendingRequest.entries()) {
+      if (reqObj.ws === ws) {
+        clearTimeout(reqObj.timer);
+        reqObj.res.status(502).send("Agent disconnected");
+        pendingRequest.delete(id);
+      }
     }
   })
 })
@@ -127,5 +131,5 @@ wss.on('connection', (ws: WebSocket) => {
 
 const PORT = Number(process.env.PORT) || 4000;
 server.listen(PORT, () => {
-  console.log("Relay server running on ", process.env.PORT)
+  console.log("Relay server running on ", PORT)
 })
