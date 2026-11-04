@@ -2,6 +2,7 @@
 import { Command } from "commander";
 const program = new Command();
 import WebSocket from "ws"
+import "dotenv/config"
 
 program
   .name('mytunnel')
@@ -9,6 +10,7 @@ program
   .version('1.0.0')
   .option('-p, --port <number>', 'port of your local app')
   .option('-s, --server <url>', 'server url', 'ws://localhost:4000')
+  .option('-t, --token <value>', 'token', process.env.TOKEN)
 
 program.parse(process.argv);
 
